@@ -1,3 +1,20 @@
+#! /bin/python3
+"""
+Simulate an IMU according to the equation: depth = 5 + 2 * sin(0.2 * t)
+It is assumed that the ROV is moving forward with a constant velocity, 
+while its depth is given by the above equation
+
+Pitch is calculated using slope, yaw and roll are constant
+
+Published as a sensor_msgs.msg.Imu message at 100 Hz
+
+TODO:
+1. Add gaussian noise 
+
+Author: Mallika Sirdeshpande
+Date: 2026-04-28
+"""
+
 import rclpy
 from rclpy.node import Node
 
@@ -26,7 +43,7 @@ class DummyIMU(Node):
         t_elapsed = self.get_clock().now() - self.start_time
         t = t_elapsed.nanoseconds / 1e9
 
-        # Depth dynamics
+        # Depth dynamics - obtained by differentiating the sine eqtn.
         dz = 0.4 * math.cos(0.2 * t)
         ddz = -0.08 * math.sin(0.2 * t)
 

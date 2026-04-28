@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>vspeed_estimate</name>
+  <name>sensor_fusion_pkg</name>
   <version>0.0.0</version>
   <description>Fusing IMU and Depth Sensor to get vertical velocity</description>
   <maintainer email="sirdeshpande.m@northeastern.edu">Mallika</maintainer>
@@ -14,5 +14,8 @@
 
   <export>
     <build_type>ament_python</build_type>
+    <exec_depend>rosbridge_library</exec_depend>
+    <exec_depend>rosbridge_server</exec_depend>
+    <exec_depend>rosapi</exec_depend>
   </export>
 </package>

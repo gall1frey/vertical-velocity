@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'depth_sensor = sensors_sim.depth_sim:main',
+            'imu_sensor = sensors_sim.imu_sim:main',
         ],
     },
 )

@@ -1,3 +1,16 @@
+#! /bin/python3
+"""
+Simulate a depth sensor according to the equation: depth = 5 + 2 * sin(0.2 * t)
+
+
+TODO:
+1. Add gaussian noise 
+2. Move depth calculation to a new function?
+
+Author: Mallika Sirdeshpande
+Date: 2026-04-28
+"""
+
 import rclpy
 from rclpy.node import Node
 
@@ -22,7 +35,7 @@ class DummyDepthSensor(Node):
         depth = 5 + 2 * sin(0.2 * t)
         msg.data = depth
         self.publisher_.publish(msg)
-        self.get_logger().info('Depth: "%f"' % msg.data)
+        # self.get_logger().info('Depth: "%f"' % msg.data)
 
 
 def main(args=None):
