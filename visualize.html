@@ -1,0 +1,185 @@
+<!-- 
+ 
+Uses ROSbridge to subscribe to the /vertical_velocity topic and
+plots it over time using highcharts
+
+This is a standalone HTML file, however it uses a python server
+due to CORS requirements
+
+TODO: change vertical_velocity visualizing topic on line 146
+
+Author: Mallika Sirdeshpande
+Date: 2026-04-29
+
+-->
+
+<!DOCTYPE html>
+    <head>
+        <meta charset="utf-8" />
+        <title>ROV vertical speed visualizer</title>
+        <!-- ROS CDNs -->
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+        
+        <!-- Highcharts CDNs -->
+        <script type="text/javascript" src="https://code.highcharts.com/highcharts.js"></script>
+        <script type="text/javascript" src="https://code.highcharts.com/modules/data.js"></script> 
+
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+        <style>
+            html {
+                width: 100vw;
+            }
+            body {
+                font-family: "Fira Sans", sans-serif;
+                font-weight: 400;
+                font-style: normal;
+                margin: auto;
+            }
+            .title {
+                margin: auto;
+                width: 70%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+        </style>
+    </head>
+
+
+    <body>
+        <div class="title">
+            <h1>Vertical Speed</h1>
+        </div>
+
+        <!-- Plots Divs -->
+        <div class="plot">
+            <figure class="highcharts-figure">
+                <div id="vspeed"></div>
+            </figure>
+            <figure class="highcharts-figure">
+                <div id="depth"></div>
+            </figure>
+        </div>
+
+        <script type="text/javascript">
+
+            // ROSBridge connection
+            // Reference: https://wiki.ros.org/roslibjs/Tutorials/BasicRosFunctionality
+            var ros = new ROSLIB.Ros({
+                url: 'ws://localhost:9090'
+            });
+            ros.on('connection', function() {
+                console.log('Connected to websocket server.');
+            });
+            ros.on('error', function(error) {
+                console.log('Error connecting to websocket server: ', error);
+            });
+            ros.on('close', function() {
+                console.log('Connection closed.');
+            });
+
+            // Create Vertical Velocity Chart
+            const vspeed_chart = Highcharts.chart('vspeed', {
+                chart: {
+                    type: 'areaspline'
+                },
+                title: {
+                    text: 'Vertical Velocity (Live)'
+                },
+                xAxis: {
+                    type: 'datetime'
+                },
+                series: [{
+                    name: 'Vertical Velocity',
+                    data: []
+                }],
+                plotOptions: {
+                    series: {
+                        animation: false
+                    },
+                    areaspline: {
+                        color: '#32CD32',
+                        fillOpacity: 0.2
+                    }
+                }
+            });
+
+            // Create Depth Chart
+            const depth_chart = Highcharts.chart('depth', {
+                chart: {
+                    type: 'areaspline'
+                },
+                title: {
+                    text: 'Depth (Live)'
+                },
+                xAxis: {
+                    type: 'datetime'
+                },
+                series: [{
+                    name: 'Depth',
+                    data: []
+                }],
+                plotOptions: {
+                    series: {
+                        animation: false
+                    },
+                    areaspline: {
+                        color: '#32CD32',
+                        fillOpacity: 0.2
+                    }
+                }
+            });
+
+            // Create Listeners
+            var depth_listener = new ROSLIB.Topic({
+                ros: ros,
+                name: '/depth',
+                messageType: 'std_msgs/Float32'
+            });
+            var vspeed_listener = new ROSLIB.Topic({
+                ros: ros,
+                name: '/depth',
+                messageType: 'std_msgs/Float32'
+            });
+
+            // Subscribe 
+            depth_listener.subscribe(function(message) {
+                const time = (new Date()).getTime();
+                const value = message.data;
+
+                console.log('Depth:', value);
+
+                const series = depth_chart.series[0];
+
+                // Keep only last 5000 points
+                const shift = series.data.length > 5000;
+                
+                // everytime a message is received, add it to the 
+                // series and plot it
+                series.addPoint([time, value], true, shift);
+            });
+
+            vspeed_listener.subscribe(function(message) {
+                const time = (new Date()).getTime();
+                const value = message.data;
+
+                console.log('Vertical Velocity:', value);
+
+                const series = vspeed_chart.series[0];
+
+                // Keep only last 5000 points
+                const shift = series.data.length > 5000;
+                
+                // everytime a message is received, add it to the 
+                // series and plot it
+                series.addPoint([time, value], true, shift);
+            });
+
+        </script>
+    </body>
+</html>
