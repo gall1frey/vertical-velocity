@@ -6,11 +6,9 @@ plots it over time using highcharts
 This is a standalone HTML file, however it uses a python server
 due to CORS requirements
 
-TODO: change vertical_velocity visualizing topic on line 146
-
 Author: Mallika Sirdeshpande
 Date: 2026-04-29
-
+Updated: 2026-04-30
 -->
 
 <!DOCTYPE html>
@@ -149,6 +147,7 @@ Date: 2026-04-29
 
             vspeed_listener.subscribe(msg => {
                 push(vspeedPlot, vspeedX, vspeedY, vspeedIndex++, msg.data);
+                console.log("Vertical Velocity: ",msg.data);
             });
 
             setInterval(() => {
