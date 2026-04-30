@@ -27,7 +27,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'fused_data = sensor_fusion_pkg.fused_data:main'
+            'fused_data = sensor_fusion_pkg.fused_data:main',
+            'kalman_filter = sensor_fusion_pkg.kalman_filter:main'
         ],
     },
 )

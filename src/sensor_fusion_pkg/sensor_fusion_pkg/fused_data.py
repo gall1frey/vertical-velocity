@@ -26,7 +26,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32
 from sensor_msgs.msg import Imu
 
-from kalman_filter import KalmanFilter
+from .kalman_filter import KalmanFilter
 
 class FusedData(Node):
 
@@ -58,7 +58,9 @@ class FusedData(Node):
         self.publisher_.publish(msg)
 
     def depth_sensor_callback(self, msg):
-        self.depth_sensor_reading = msg.data
+        new_depth = msg.data
+        self.ds_vel = new_depth - self.depth_sensor_reading
+        self.depth_sensor_reading = new_depth
 
     def imu_callback(self,msg):
         self.imu_reading = msg.data

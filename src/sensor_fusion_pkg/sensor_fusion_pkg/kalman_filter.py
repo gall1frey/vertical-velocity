@@ -13,12 +13,12 @@ class KalmanFilter:
         self.P = np.eye(self.n) if P is None else P
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
 
-    def prediction_step(self, u = 0):
+    def _prediction_step(self, u = 0):
         self.x = np.dot(self.F,self.x) + np.dot(self.B,u) 
         self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
         return self.x
 
-    def update_step(self, z):
+    def _update_step(self, z):
         y = z - np.dot(self.H, self.x)
         S = self.R + np.dot(self.H, np.dot(self.P, self.H.T))
         K = np.dot(np.dot(self.P, self.H.T), np.linalg.inv(S))

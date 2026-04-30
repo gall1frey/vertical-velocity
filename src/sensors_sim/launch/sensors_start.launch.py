@@ -2,9 +2,6 @@
 """
 Launch file to start the following:
 1. Dummy Sensors - depth and IMU
-2. Sensor fusion node
-3. Rosbridge server
-
 
 Author: Mallika Sirdeshpande
 Date: 2026-04-28
@@ -12,17 +9,12 @@ Date: 2026-04-28
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-
-
-import os
+from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
-
+     
+    # Declare launch arguments
     depth_noise_stddev = LaunchConfiguration('depth_noise_stddev', default=0.0)
     imu_noise_stddev = LaunchConfiguration('imu_noise_stddev', default=0.0)
     depth_freq = LaunchConfiguration('depth_freq', default=10.0)
@@ -52,48 +44,30 @@ def generate_launch_description():
         description='Frequency of publishing IMU measurements',
     )
 
-
-    sensors_sim_dir = get_package_share_directory('sensors_sim')
-    
-    # Path to the sensors_sim.launch.py file
-    sensors_sim_launch = os.path.join(
-        sensors_sim_dir,
-        'launch',
-        'sensors_start.launch.py'
-    )
-    
-    # Include the sensors sim launch file
-    include_sensors_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(sensors_sim_launch),
-        launch_arguments={
-            'depth_noise_stddev': depth_noise_stddev,
-            'imu_noise_stddev': imu_noise_stddev,
-            'depth_freq': depth_freq,
-            'imu_freq': imu_freq
-        }.items(),
-    )
-
     return LaunchDescription([
         
         declare_depth_noise_stddev,
         declare_imu_noise_stddev,
         declare_depth_freq,
         declare_imu_freq,
-        
-        include_sensors_launch,
 
-        # Rosbridge server
+        # Dummy depth sensor
         Node(
-            package='rosbridge_server',
-            executable='rosbridge_websocket',
-            name='rosbridge_websocket',
-            output='screen',
-            parameters=[{'port': 9090}]
+            package='sensors_sim',
+            executable='depth_sensor',
+            parameters=[{
+                'frequency':depth_freq,
+                'noise_stddev':depth_noise_stddev
+            }]
         ),
 
-        # Fused data
+        # Dummy IMU
         Node(
-            package='sensor_fusion_pkg',
-            executable='fused_data'
-        )
+            package='sensors_sim',
+            executable='imu_sensor',
+            parameters=[{
+                'frequency':imu_freq,
+                'noise_stddev':imu_noise_stddev
+            }]
+        ),
     ])

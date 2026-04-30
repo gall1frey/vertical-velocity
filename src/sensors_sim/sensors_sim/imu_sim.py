@@ -8,8 +8,6 @@ Pitch is calculated using slope, yaw and roll are constant
 
 Published as a sensor_msgs.msg.Imu message at 100 Hz
 
-TODO:
-1. Add gaussian noise 
 
 Author: Mallika Sirdeshpande
 Date: 2026-04-28
@@ -21,16 +19,24 @@ from rclpy.node import Node
 from sensor_msgs.msg import Imu
 import math
 
+from random import gauss
 
 class DummyIMU(Node):
 
     def __init__(self):
         super().__init__('imu')
-
         self.start_time = self.get_clock().now()
+
+        # Declare parameters
+        self.declare_parameter('frequency', 100.0)
+        self.declare_parameter('noise_stddev', 0.0)
+        
+        # Get parameters
+        frequency = float(self.get_parameter('frequency').value)
+        self.noise_stddev = float(self.get_parameter('noise_stddev').value)
+        
         self.publisher_ = self.create_publisher(Imu, '/imu/data', 10)
 
-        frequency = 100  # Hz
         timer_period = 1 / frequency
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
@@ -47,11 +53,11 @@ class DummyIMU(Node):
         dz = 0.4 * math.cos(0.2 * t)
         ddz = -0.08 * math.sin(0.2 * t)
 
-        # Pitch angle
-        theta = math.atan2(dz, self.v)
+        # Pitch angle with noise
+        theta = math.atan2(dz, self.v) + gauss(0,self.noise_stddev)
 
-        # Pitch rate
-        theta_dot = (-0.08 * math.sin(0.2 * t) * self.v) / (self.v**2 + dz**2)
+        # Pitch rate with noise
+        theta_dot = (-0.08 * math.sin(0.2 * t) * self.v) / (self.v**2 + dz**2) + gauss(0,self.noise_stddev)
 
         # Header
         msg.header.stamp = self.get_clock().now().to_msg()
