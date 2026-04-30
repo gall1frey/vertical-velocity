@@ -21,6 +21,8 @@ This should start a http server serving on localhost:8080. View the html at: [ht
 ## Assumptions made
 1. The AUV is moving forward with constant unit velocity, while changing depth along the curve of the equation: `depth = 5 + 2 * sin(0.2 * t)`. The AUV's pitch is given by the slope of the curve at that instant.
 2. Orientation and linear acceleration values from the IMU are already processed and provide a decent estimate of the real world
+3. imu has gaussian noise, stddev = 0.2
+4. depth sensor has gaussian noise, stddev 0.1
 
 ## Rosbridge
 Rosbridge snippet can be found in `visualize.html`, lines 118-150. Given below is a screenshot of the vertical velocity plot
