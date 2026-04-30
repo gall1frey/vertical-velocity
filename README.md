@@ -19,7 +19,7 @@ python3 -m http.server .
 This should start a http server serving on localhost:8080. View the html at: [http://localhost:8000/visualize.html](http://localhost:8000/visualize.html)
 
 ## Assumptions made
-1. The AUV is moving forward with constant unit velocity, while changing depth along the curve of the equation: `depth = 5 + 2 * sin(0.2 * t)`
+1. The AUV is moving forward with constant unit velocity, while changing depth along the curve of the equation: `depth = 5 + 2 * sin(0.2 * t)`. The AUV's pitch is given by the slope of the curve at that instant.
 2. Orientation and linear acceleration values from the IMU are already processed and provide a decent estimate of the real world
 
 ## Rosbridge
