@@ -1,3 +1,11 @@
+#! /bin/python3
+"""
+Kalman Filter implementation, taken from github and edited
+Original Author: zziz (https://github.com/zziz/kalman-filter)
+Date: 2026-04-29
+Updated: 2026-04-30
+"""
+
 import numpy as np
 
 class KalmanFilter:
@@ -26,3 +34,5 @@ class KalmanFilter:
         I = np.eye(self.n)
         self.P = np.dot(np.dot(I - np.dot(K, self.H), self.P), 
         	(I - np.dot(K, self.H)).T) + np.dot(np.dot(K, self.R), K.T)
+        
+        

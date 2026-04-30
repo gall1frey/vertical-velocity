@@ -5,6 +5,7 @@ Simulate a depth sensor according to the equation: depth = 5 + 2 * sin(0.2 * t)
 
 Author: Mallika Sirdeshpande
 Date: 2026-04-28
+Updated: 2026-04-30
 """
 
 import rclpy
@@ -34,6 +35,9 @@ class DummyDepthSensor(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
+        """
+        Publisher callback
+        """
         msg = Float32()
 
         t_elapsed = self.get_clock().now() - self.start_time

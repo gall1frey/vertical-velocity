@@ -11,6 +11,7 @@ Published as a sensor_msgs.msg.Imu message at 100 Hz
 
 Author: Mallika Sirdeshpande
 Date: 2026-04-28
+Updated: 2026-04-30
 """
 
 import rclpy
@@ -43,6 +44,17 @@ class DummyIMU(Node):
         self.v = 1.0  # forward velocity (m/s)
 
     def timer_callback(self):
+        """
+        Publisher callback
+
+        Computes theta, theta_dot from differentiated depth equations
+        Uses theta and theta_dot to compute body frame orientation quat.,
+        angular vel and linear acc
+
+        Adds noise
+
+        Publishes to /imu/data
+        """
         msg = Imu()
 
         # Time

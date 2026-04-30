@@ -9,15 +9,15 @@ The way this works:
     - Use linear acceleration vector projections to get 
         downward/upward linear acceleration
     - Integrate to get vertical speed
-3. Use a kalman filter to fuse vertical speeds from IMU with measurements
+2. Use a kalman filter to fuse vertical speeds from IMU with measurements
     from depth sensor
 
 TODO:
 1. Add topics as parameters (optional)
-2. Tune Kalman Filter
 
 Author: Mallika Sirdeshpande
 Date: 2026-04-29
+Updated: 2026-04-30
 """
 
 import rclpy
@@ -38,25 +38,30 @@ class FusedData(Node):
 
         self.depth_sub = self.create_subscription(Float32,'/depth',self.depth_sensor_callback,10)
         self.depth_sub
+
         # For timing and integration purposes
         self.depth_last_time = self.get_clock().now()
 
         self.imu_sub = self.create_subscription(Imu,'/imu/data',self.imu_callback,10)
         self.imu_sub
+
         # For timing and integration purposes
         self.imu_last_time = self.get_clock().now()
 
         self.publisher_ = self.create_publisher(Float32, '/vertical_velocity', 10)
-        frequency = 10  # Hz
+        frequency = 10 # Hz -> this works best as the slower of the two inputs (depth and velocity)
+        
+        # for callback 
         self.dt = 1 / frequency
         self.timer = self.create_timer(self.dt, self.timer_callback)
 
+        # variables to hold most current values
         self.depth_sensor_reading = None
         self.imu_reading = None
-
         self.ds_vel = 0.0
         self.imu_vel = 0.0
 
+        # Kalman filter variables
         F = np.array([[1, self.dt],
             [0, 1]])
 
@@ -79,13 +84,22 @@ class FusedData(Node):
         self.kalman = KalmanFilter(F, B, H, Q, R, P, x0)
 
     def timer_callback(self):
+        """
+        Publisher callback
+        """
         msg = Float32()
         self.kalman._prediction_step(u=self.imu_vel)
         msg.data = float(self.kalman.x[1][0])  # velocity
         self.publisher_.publish(msg)
 
     def depth_sensor_callback(self, msg):
+        """
+        Depth sensor subscriber callback
 
+        Computes vertical velocity based on depth
+        Stores current depth and current vertical velocity in
+        self.depth_sensor_reading and self.ds_vel
+        """
         if self.depth_sensor_reading is None:
             self.depth_sensor_reading = msg.data
             return
@@ -102,6 +116,14 @@ class FusedData(Node):
         self.kalman._update_step(z)
 
     def imu_callback(self,msg):
+        """
+        IMU subscriber callback
+
+        Converts body frame acceleration to world frame acceleration (assume z up)
+        Integrates acceleration to get vertical velocity in world frame
+        Stores current reading and computed vertical velocity in
+        self.imu_reading and self.imu_vel
+        """
         if self.imu_reading is None:
             self.imu_reading = msg
             self.imu_last_time = self.get_clock().now()

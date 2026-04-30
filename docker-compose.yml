@@ -1,0 +1,20 @@
+services:
+  ros:
+    build: .
+    image: sensorfusion:latest
+    container_name: ros2-sensorfusion
+
+    entrypoint: /root/ros2_ws/entrypoint.sh
+
+    stdin_open: true
+    tty: true
+
+    networks:
+      - ros2_internal
+
+    ports:
+      - "9090:9090"
+
+networks:
+  ros2_internal:
+    driver: bridge
