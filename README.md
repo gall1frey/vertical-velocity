@@ -3,9 +3,10 @@ This repository contains code to fuse data from IMU and depth sensor to estimate
 
 ## How to run
 ### Running the container
-Assuming docker and docker-compose are installed [Guide](https://docs.docker.com/engine/install/ubuntu/), run the following commands in the directory containing `dockerfile` and `docker-compoase.yml`:
+Assuming docker and docker-compose are installed ([Guide](https://docs.docker.com/engine/install/ubuntu/)), run the following commands in the directory containing `dockerfile` and `docker-compoase.yml`:
 1. Build the docker image: `docker compose build`
 2. Start the container:    `docker compose up`
+
 This will start the depth sensor and IMU simulation nodes, as well as the sensor fusion node and the ros bridge.
 
 ### Validating rosbridge
