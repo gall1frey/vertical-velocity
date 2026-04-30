@@ -21,9 +21,9 @@ Date: 2026-04-29
         <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
         <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
         
-        <!-- Highcharts CDNs -->
-        <script type="text/javascript" src="https://code.highcharts.com/highcharts.js"></script>
-        <script type="text/javascript" src="https://code.highcharts.com/modules/data.js"></script> 
+        <!-- UPlot CDN and CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/uplot/dist/uPlot.min.css">
+        <script type="text/javascript" src="https://unpkg.com/uplot/dist/uPlot.iife.min.js"></script>
 
         <!-- Google Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,9 +43,16 @@ Date: 2026-04-29
             .title {
                 margin: auto;
                 width: 70%;
+                height: 100%;
                 display: flex;
                 justify-content: center;
                 align-items: center;
+            }
+            .plot {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                margin: auto;
             }
         </style>
     </head>
@@ -58,127 +65,96 @@ Date: 2026-04-29
 
         <!-- Plots Divs -->
         <div class="plot">
-            <figure class="highcharts-figure">
-                <div id="vspeed"></div>
-            </figure>
-            <figure class="highcharts-figure">
-                <div id="depth"></div>
-            </figure>
+            <div class="plot" id="vspeed"></div>
+            <div class="plot" id="depth"></div>
         </div>
-
+        
         <script type="text/javascript">
-
+            
             // ROSBridge connection
             // Reference: https://wiki.ros.org/roslibjs/Tutorials/BasicRosFunctionality
             var ros = new ROSLIB.Ros({
                 url: 'ws://localhost:9090'
             });
-            ros.on('connection', function() {
-                console.log('Connected to websocket server.');
-            });
-            ros.on('error', function(error) {
-                console.log('Error connecting to websocket server: ', error);
-            });
-            ros.on('close', function() {
-                console.log('Connection closed.');
-            });
 
-            // Create Vertical Velocity Chart
-            const vspeed_chart = Highcharts.chart('vspeed', {
-                chart: {
-                    type: 'areaspline'
-                },
-                title: {
-                    text: 'Vertical Velocity (Live)'
-                },
-                xAxis: {
-                    type: 'datetime'
-                },
-                series: [{
-                    name: 'Vertical Velocity',
-                    data: []
-                }],
-                plotOptions: {
-                    series: {
-                        animation: false
+            const MAX_POINTS = 1000;
+
+            let depthX = [];
+            let depthY = [];
+
+            let vspeedX = [];
+            let vspeedY = [];
+
+            function createPlot(el, title) {
+                return new uPlot({
+                    width: 800,
+                    height: 300,
+                    title: title,
+                    scales: {
+                        x: {
+                            time: false
+                        }
                     },
-                    areaspline: {
-                        color: '#32CD32',
-                        fillOpacity: 0.2
-                    }
-                }
-            });
+                    axes: [
+                        {
+                            label: "Samples"
+                        },
+                        {
+                            label: title
+                        }
+                    ],
+                    series: [
+                        {},
+                        {
+                            stroke: "#32CD32",
+                            width: 2
+                        }
+                    ]
+                }, [[], []], document.getElementById(el));
+            }
 
-            // Create Depth Chart
-            const depth_chart = Highcharts.chart('depth', {
-                chart: {
-                    type: 'areaspline'
-                },
-                title: {
-                    text: 'Depth (Live)'
-                },
-                xAxis: {
-                    type: 'datetime'
-                },
-                series: [{
-                    name: 'Depth',
-                    data: []
-                }],
-                plotOptions: {
-                    series: {
-                        animation: false
-                    },
-                    areaspline: {
-                        color: '#32CD32',
-                        fillOpacity: 0.2
-                    }
-                }
-            });
+            const depthPlot = createPlot("depth", "Depth");
+            const vspeedPlot = createPlot("vspeed", "Vertical Velocity");
 
-            // Create Listeners
-            var depth_listener = new ROSLIB.Topic({
-                ros: ros,
-                name: '/depth',
-                messageType: 'std_msgs/Float32'
-            });
-            var vspeed_listener = new ROSLIB.Topic({
+
+            const depth_listener = new ROSLIB.Topic({
                 ros: ros,
                 name: '/depth',
                 messageType: 'std_msgs/Float32'
             });
 
-            // Subscribe 
-            depth_listener.subscribe(function(message) {
-                const time = (new Date()).getTime();
-                const value = message.data;
-
-                console.log('Depth:', value);
-
-                const series = depth_chart.series[0];
-
-                // Keep only last 5000 points
-                const shift = series.data.length > 5000;
-                
-                // everytime a message is received, add it to the 
-                // series and plot it
-                series.addPoint([time, value], true, shift);
+            const vspeed_listener = new ROSLIB.Topic({
+                ros: ros,
+                name: '/vertical_velocity',
+                messageType: 'std_msgs/Float32'
             });
 
-            vspeed_listener.subscribe(function(message) {
-                const time = (new Date()).getTime();
-                const value = message.data;
 
-                console.log('Vertical Velocity:', value);
+            function push(plot, xs, ys, x, y) {
+                xs.push(x);
+                ys.push(y);
 
-                const series = vspeed_chart.series[0];
+                if (xs.length > MAX_POINTS) {
+                    xs.shift();
+                    ys.shift();
+                }
+            }
 
-                // Keep only last 5000 points
-                const shift = series.data.length > 5000;
-                
-                // everytime a message is received, add it to the 
-                // series and plot it
-                series.addPoint([time, value], true, shift);
+            let depthIndex = 0;
+            let vspeedIndex = 0;
+
+            depth_listener.subscribe(msg => {
+                push(depthPlot, depthX, depthY, depthIndex++, msg.data);
             });
+
+            vspeed_listener.subscribe(msg => {
+                push(vspeedPlot, vspeedX, vspeedY, vspeedIndex++, msg.data);
+            });
+
+            setInterval(() => {
+                depthPlot.setData([depthX, depthY]);
+                vspeedPlot.setData([vspeedX, vspeedY]);
+            }, 50); 
 
         </script>
     </body>

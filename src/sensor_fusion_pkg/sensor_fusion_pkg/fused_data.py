@@ -13,8 +13,8 @@ The way this works:
     from depth sensor
 
 TODO:
-1. Add topics as parameters 
-2. Complete this script
+1. Add topics as parameters (optional)
+2. Tune Kalman Filter
 
 Author: Mallika Sirdeshpande
 Date: 2026-04-29
@@ -28,6 +28,9 @@ from sensor_msgs.msg import Imu
 
 from .kalman_filter import KalmanFilter
 
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+
 class FusedData(Node):
 
     def __init__(self):
@@ -35,35 +38,106 @@ class FusedData(Node):
 
         self.depth_sub = self.create_subscription(Float32,'/depth',self.depth_sensor_callback,10)
         self.depth_sub
+        # For timing and integration purposes
+        self.depth_last_time = self.get_clock().now()
 
         self.imu_sub = self.create_subscription(Imu,'/imu/data',self.imu_callback,10)
         self.imu_sub
+        # For timing and integration purposes
+        self.imu_last_time = self.get_clock().now()
 
         self.publisher_ = self.create_publisher(Float32, '/vertical_velocity', 10)
-        frequency = 100  # Hz
-        timer_period = 1 / frequency
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        frequency = 10  # Hz
+        self.dt = 1 / frequency
+        self.timer = self.create_timer(self.dt, self.timer_callback)
 
         self.depth_sensor_reading = None
         self.imu_reading = None
 
-        self.ds_vel = None
-        self.imu_vel = None
+        self.ds_vel = 0.0
+        self.imu_vel = 0.0
 
-        self.kalman = KalmanFilter()
+        F = np.array([[1, self.dt],
+            [0, 1]])
+
+        B = np.array([[0.5 * self.dt**2],
+                    [self.dt]])
+
+        H = np.array([[1, 0],
+                    [0, 1]])
+
+        Q = np.array([[0.01, 0],
+                    [0, 0.1]])   # tune later
+
+        R = np.array([[10, 0],
+                    [0,  100]])
+
+        P = np.eye(2)
+
+        x0 = np.zeros((2, 1))
+
+        self.kalman = KalmanFilter(F, B, H, Q, R, P, x0)
 
     def timer_callback(self):
         msg = Float32()
-        # TODO: kalman stuff here
+        self.kalman._prediction_step(u=self.imu_vel)
+        msg.data = float(self.kalman.x[1][0])  # velocity
         self.publisher_.publish(msg)
 
     def depth_sensor_callback(self, msg):
+
+        if self.depth_sensor_reading is None:
+            self.depth_sensor_reading = msg.data
+            return
+        
+        now = self.get_clock().now()
+        dt = (now - self.depth_last_time).nanoseconds / 1e9
+        self.depth_last_time = now
+        
         new_depth = msg.data
-        self.ds_vel = new_depth - self.depth_sensor_reading
+        self.ds_vel = (self.depth_sensor_reading - new_depth)/dt
         self.depth_sensor_reading = new_depth
+        z = np.array([[self.depth_sensor_reading],
+              [self.ds_vel]])
+        self.kalman._update_step(z)
 
     def imu_callback(self,msg):
-        self.imu_reading = msg.data
+        if self.imu_reading is None:
+            self.imu_reading = msg
+            self.imu_last_time = self.get_clock().now()
+            return
+        
+        now = self.get_clock().now()
+        dt = (now - self.imu_last_time).nanoseconds / 1e9
+        self.imu_last_time = now
+
+        self.imu_reading = msg
+        linear_accel = self.get_world_accel(self.imu_reading.orientation,self.imu_reading.linear_acceleration)
+
+        self.imu_vel += (linear_accel[-1] - 9.81)*dt
+
+    def get_world_accel(self,orientation,linear_accel):
+        """
+        Use quaternion's transform to get linear acceleration 
+        in world frame
+        """
+        quaternion = [
+            orientation.x,
+            orientation.y,
+            orientation.z,
+            orientation.w,
+        ]
+        
+        a_body = [
+            linear_accel.x,
+            linear_accel.y,
+            linear_accel.z
+        ]
+
+        r = R.from_quat(quaternion)
+        linear_accel_world = r.apply(a_body)
+        return linear_accel_world
+    
 
 def main(args=None):
     rclpy.init(args=args)

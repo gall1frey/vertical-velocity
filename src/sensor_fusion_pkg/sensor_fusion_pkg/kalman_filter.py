@@ -9,7 +9,7 @@ class KalmanFilter:
         self.H = H
         self.B = 0 if B is None else B
         self.Q = np.eye(self.n) if Q is None else Q
-        self.R = np.eye(self.n) if R is None else R
+        self.R = np.eye(self.m) if R is None else R
         self.P = np.eye(self.n) if P is None else P
         self.x = np.zeros((self.n, 1)) if x0 is None else x0
 
